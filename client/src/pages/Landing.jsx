@@ -5,7 +5,7 @@ import { masterAPI, pendaftaranAPI } from '../api'
 import toast from 'react-hot-toast'
 import {
   LogOut, CheckCircle, Clock, Music, Calendar,
-  Phone, Send, ChevronRight, User, Shield, Loader2, X
+  Phone, Send, ChevronRight, User, Shield, Loader2, X, ArrowLeft
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -477,8 +477,14 @@ function StatusPage({ data, user, onLogout, navigate }) {
             </div>
 
             {data.status === 'menunggu' && (
-              <p className="text-brown-500 text-xs">Admin akan segera menghubungi kamu. Pantau nomor WhatsApp kamu ya!</p>
+              <p className="text-brown-500 text-xs mb-4">Admin akan segera menghubungi kamu. Pantau nomor WhatsApp kamu ya!</p>
             )}
+            <button
+              onClick={() => navigate('/')}
+              className="mt-4 w-full flex items-center justify-center gap-2 bg-brown-800/60 hover:bg-brown-700/60 border border-brown-700/40 text-brown-300 hover:text-white rounded-xl py-3 text-sm font-medium transition-all"
+            >
+              <ArrowLeft size={15}/> Kembali ke Beranda
+            </button>
           </div>
         </div>
       </div>
