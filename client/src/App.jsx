@@ -7,6 +7,7 @@ import Register   from './pages/Register'
 import Login      from './pages/Login'
 import Landing    from './pages/Landing'
 import Admin      from './pages/Admin'
+import AlurPendaftaran from './pages/AlurPendaftaran'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -34,6 +35,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/"          element={<Beranda />} />
+      <Route path="/alur-pendaftaran" element={<AlurPendaftaran />} />
       <Route path="/register"  element={<Register />} />
       <Route path="/login"     element={<Login />} />
       <Route path="/dashboard" element={<PrivateRoute><Landing /></PrivateRoute>} />
