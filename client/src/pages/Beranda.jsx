@@ -27,6 +27,9 @@ export default function Beranda() {
           <span className="font-playfair font-bold text-white tracking-wide">FLORENCE</span>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/alur-pendaftaran')} className="btn-ghost text-sm hidden sm:block">
+            Alur Pendaftaran
+          </button>
           {user ? (
             <>
               <button onClick={() => navigate('/dashboard')} className="btn-ghost text-sm">
@@ -87,6 +90,14 @@ export default function Beranda() {
             </button>
           )}
         </div>
+
+        <button
+          onClick={() => navigate('/alur-pendaftaran')}
+          className="mt-5 text-brown-500 hover:text-brown-300 text-xs underline underline-offset-4 transition-colors animate-fade-up"
+          style={{animationDelay:'.3s'}}
+        >
+          Lihat alur pendaftarannya dulu →
+        </button>
 
         {/* Floating instruments */}
         <div className="flex gap-3 mt-14 animate-fade-up" style={{animationDelay:'.35s'}}>
