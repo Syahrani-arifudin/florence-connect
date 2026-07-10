@@ -59,18 +59,6 @@ CREATE TABLE IF NOT EXISTS divisi (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
--- Ganti baris INSERT INTO divisi yang lama dengan ini:
-INSERT INTO divisi (nama_divisi, emoji, deskripsi)
-SELECT * FROM (VALUES
-  ROW('Gitar',          '🎸', 'Divisi gitar akustik dan elektrik'),
-  ROW('Piano',          '🎹', 'Divisi keyboard dan piano klasik'),
-  ROW('Drum',           '🥁', 'Divisi perkusi dan drum kit'),
-  ROW('Bass',           '🎵', 'Divisi bass gitar'),
-  ROW('Vokal',          '🎤', 'Divisi vokal dan olah suara'),
-  ROW('Manajemen Band', '🎼', 'Divisi manajemen dan produksi band')
-) AS tmp
-WHERE NOT EXISTS (SELECT 1 FROM divisi LIMIT 1);
-
 -- Data default divisi
 INSERT INTO divisi (nama_divisi, emoji, deskripsi) VALUES
   ('Gitar',          '🎸', 'Divisi gitar akustik dan elektrik'),

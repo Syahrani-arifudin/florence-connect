@@ -5,7 +5,7 @@ import { masterAPI, pendaftaranAPI } from '../api'
 import toast from 'react-hot-toast'
 import {
   LogOut, CheckCircle, Clock, Music, Calendar,
-  Phone, Send, ChevronRight, User, Shield, Loader2, X, ArrowLeft
+  Phone, Send, ChevronRight, User, Shield, Loader2, X, ArrowLeft, Video
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -39,6 +39,7 @@ export default function Landing() {
   const [selectedDivisi, setSelectedDivisi] = useState(null)     // divisi object
   const [confirmedDivisi, setConfirmedDivisi] = useState(null)
   const [noHp, setNoHp]                 = useState('')
+  const [videoUrl, setVideoUrl]         = useState('')
   const [submitting, setSubmitting]     = useState(false)
   const [showSuccess, setShowSuccess]   = useState(false)
 
@@ -101,16 +102,20 @@ export default function Landing() {
     toast.success('Divisi dikonfirmasi!')
   }
 
+  const isValidVideoUrl = (url) => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|drive\.google\.com)\//i.test(url)
+
   const handleSubmit = async () => {
     if (!confirmedJadwal)  { toast.error('Konfirmasi jadwal dulu'); return }
     if (!confirmedDivisi)  { toast.error('Konfirmasi divisi dulu'); return }
     if (!noHp || noHp.replace(/\D/g,'').length < 8) { toast.error('Masukkan nomor HP yang valid'); return }
+    if (videoUrl && !isValidVideoUrl(videoUrl)) { toast.error('Link video harus dari YouTube atau Google Drive'); return }
     setSubmitting(true)
     try {
       await pendaftaranAPI.submit({
         jadwal_id: confirmedJadwal,
         divisi_id: confirmedDivisi.id,
         no_hp: noHp,
+        video_url: videoUrl || undefined,
       })
       setShowSuccess(true)
     } catch (err) {
@@ -307,6 +312,39 @@ export default function Landing() {
               </div>
             </div>
 
+            {/* STEP 4 — Video Motivasi/Unjuk Bakat (opsional) */}
+            <div className="card-brown p-6 animate-fade-up" style={{animationDelay:'.175s'}}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-brown-600/30 border border-brown-500/30 flex items-center justify-center text-brown-300 font-bold text-sm">4</div>
+                  <div>
+                    <h2 className="font-semibold text-white text-base">Video Motivasi / Unjuk Bakat</h2>
+                    <p className="text-brown-500 text-xs">Opsional — nilai tambah buat proses interview kamu</p>
+                  </div>
+                </div>
+                {videoUrl && isValidVideoUrl(videoUrl) && (
+                  <div className="flex items-center gap-1.5 text-green-400 text-xs font-semibold bg-green-900/30 px-2.5 py-1 rounded-full border border-green-800/40">
+                    <CheckCircle size={12}/> Terisi
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <Video size={14} className="text-brown-400 flex-shrink-0"/>
+                <input
+                  type="url"
+                  className="input-field flex-1"
+                  placeholder="https://youtube.com/... atau https://drive.google.com/..."
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value.trim())}
+                />
+              </div>
+
+              <p className="text-brown-500 text-xs leading-relaxed">
+                Rekam video singkat (1–3 menit) ceritain motivasi kamu gabung Florence, atau unjuk kemampuan main musik/vokal kamu. Upload ke YouTube (mode <span className="text-brown-300 font-medium">Tidak Publik/Unlisted</span>) atau Google Drive, lalu tempel link-nya di sini. Pastikan akses link-nya <span className="text-brown-300 font-medium">"siapa saja yang memiliki link"</span> supaya admin bisa nonton.
+              </p>
+            </div>
+
           </div>
 
           {/* Right — Summary */}
@@ -360,6 +398,21 @@ export default function Landing() {
                     </p>
                   </div>
                   {noHp.length >= 8 && <CheckCircle size={14} className="text-green-400 flex-shrink-0"/>}
+                </div>
+
+                {/* Video (opsional) */}
+                <div className={clsx('flex items-center gap-3 p-3 rounded-xl border text-sm transition-all',
+                  videoUrl && isValidVideoUrl(videoUrl)
+                    ? 'bg-green-900/20 border-green-800/40 text-green-300'
+                    : 'bg-brown-800/40 border-brown-700/30 text-brown-500')}>
+                  <Video size={16} className={videoUrl && isValidVideoUrl(videoUrl) ? 'text-green-400' : 'text-brown-600'}/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-brown-500 mb-0.5">Video (opsional)</p>
+                    <p className="font-semibold truncate">
+                      {videoUrl && isValidVideoUrl(videoUrl) ? 'Link ditambahkan' : 'Belum diisi'}
+                    </p>
+                  </div>
+                  {videoUrl && isValidVideoUrl(videoUrl) && <CheckCircle size={14} className="text-green-400 flex-shrink-0"/>}
                 </div>
               </div>
 
@@ -473,6 +526,18 @@ function StatusPage({ data, user, onLogout, navigate }) {
               <InfoRow icon="🎸" label="Divisi"  value={`${data.emoji} ${data.nama_divisi}`} />
               <InfoRow icon="📱" label="No. HP"  value={`+62 ${data.no_hp}`} />
               <InfoRow icon="🕐" label="Daftar"  value={new Date(data.submitted_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} />
+              {data.video_url && (
+                <div className="flex items-start gap-3">
+                  <span className="text-base mt-0.5">🎬</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-brown-500 text-xs">Video</p>
+                    <a href={data.video_url} target="_blank" rel="noopener noreferrer"
+                       className="text-brown-200 text-sm font-medium underline underline-offset-2 hover:text-white transition-colors break-all">
+                      Lihat video kamu
+                    </a>
+                  </div>
+                </div>
+              )}
               {data.catatan_admin && <InfoRow icon="💬" label="Catatan" value={data.catatan_admin} />}
             </div>
 

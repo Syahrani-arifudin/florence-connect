@@ -115,16 +115,16 @@ async function getDivisi() {
 /**
  * Simpan pendaftaran + buat status awal dalam 1 transaksi
  */
-async function submitPendaftaran(userId, jadwalId, divisiId, noHp) {
+async function submitPendaftaran(userId, jadwalId, divisiId, noHp, videoUrl = null) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
     // 1. Simpan data pendaftaran
     const [p] = await conn.execute(
-      `INSERT INTO pendaftaran (user_id, jadwal_id, divisi_id, no_hp)
-       VALUES (?, ?, ?, ?)`,
-      [userId, jadwalId, divisiId, noHp]
+      `INSERT INTO pendaftaran (user_id, jadwal_id, divisi_id, no_hp, video_url)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, jadwalId, divisiId, noHp, videoUrl]
     );
     const pendaftaranId = p.insertId;
 
@@ -171,7 +171,7 @@ async function getPendaftaranByUser(userId) {
        p.id, p.submitted_at,
        j.nama_jadwal,
        d.nama_divisi, d.emoji,
-       p.no_hp,
+       p.no_hp, p.video_url,
        sp.status, sp.catatan_admin
      FROM pendaftaran p
      JOIN jadwal_perekrutan  j  ON j.id  = p.jadwal_id
@@ -215,7 +215,7 @@ async function getAllPendaftar(filter = {}) {
        j.nama_jadwal,
        d.nama_divisi, d.emoji,
        sp.status, sp.catatan_admin,
-       p.submitted_at
+       p.submitted_at, p.video_url
      FROM pendaftaran p
      JOIN users              u  ON u.id   = p.user_id
      JOIN jadwal_perekrutan  j  ON j.id   = p.jadwal_id

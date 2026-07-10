@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { adminAPI } from '../api'
+import { adminAPI, masterAPI } from '../api'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Music, Calendar, LogOut,
   Search, Filter, ChevronDown, CheckCircle, XCircle,
   Clock, Eye, RefreshCw, Menu, X, Shield, Loader2,
-  TrendingUp, ArrowLeft, MessageSquare
+  TrendingUp, ArrowLeft, MessageSquare, MessageCircle
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -16,6 +16,26 @@ const STATUS_MAP = {
   diterima:     { label:'Diterima',     color:'text-green-300',  bg:'bg-green-900/30',  border:'border-green-700/40',  dot:'bg-green-400'  },
   ditolak:      { label:'Ditolak',      color:'text-red-300',    bg:'bg-red-900/30',    border:'border-red-700/40',    dot:'bg-red-400'    },
   perlu_review: { label:'Perlu Review', color:'text-blue-300',   bg:'bg-blue-900/30',   border:'border-blue-700/40',   dot:'bg-blue-400'   },
+}
+
+// Template pesan WhatsApp otomatis, disesuaikan status pelamar
+const WA_TEMPLATE = {
+  menunggu: (p) =>
+    `Halo ${p.nama_lengkap}, saya dari Admin Florence Connect. 👋\n\nTerima kasih sudah mendaftar di divisi ${p.nama_divisi} (${p.nama_jadwal}). Kami ingin mengonfirmasi jadwal interview kamu, apakah kamu tersedia dalam waktu dekat ini?`,
+  perlu_review: (p) =>
+    `Halo ${p.nama_lengkap}, saya dari Admin Florence Connect. 👋\n\nPendaftaran kamu di divisi ${p.nama_divisi} sedang kami review lebih lanjut. Kami akan menghubungi kamu kembali segera ya!`,
+  diterima: (p) =>
+    `Halo ${p.nama_lengkap}, selamat! 🎉\n\nKamu dinyatakan LOLOS bergabung dengan Florence di divisi ${p.nama_divisi} (${p.nama_jadwal}). Selamat bergabung bersama kami!`,
+  ditolak: (p) =>
+    `Halo ${p.nama_lengkap}, terima kasih sudah mengikuti proses seleksi Florence di divisi ${p.nama_divisi}.\n\nMohon maaf, saat ini kami belum bisa meloloskan kamu. Tetap semangat dan jangan patah semangat ya! 🙏`,
+}
+
+// Bangun link wa.me dari nomor HP + pesan otomatis sesuai status
+function buildWaLink(p) {
+  if (!p?.no_hp) return null
+  const nomor = `62${p.no_hp.replace(/^0/, '')}`
+  const pesan = (WA_TEMPLATE[p.status] || WA_TEMPLATE.menunggu)(p)
+  return `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`
 }
 
 const NAV_ITEMS = [
@@ -40,6 +60,11 @@ export default function Admin() {
   const [modalStatus, setModalStatus] = useState('')
   const [modalCatatan, setModalCatatan] = useState('')
   const [saving, setSaving]         = useState(false)
+  const [divisiOptions, setDivisiOptions] = useState([])   // master divisi (id, nama, emoji) buat filter
+
+  useEffect(() => {
+    masterAPI.getDivisi().then(res => setDivisiOptions(res.data)).catch(() => {})
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -81,6 +106,9 @@ export default function Admin() {
     try {
       await adminAPI.updateStatus(modalData.pendaftaran_id || modalData.user_id, { status: modalStatus, catatan: modalCatatan })
       toast.success('Status berhasil diperbarui!')
+      // Buka WhatsApp otomatis dengan pesan sesuai status terbaru
+      const waLink = buildWaLink({ ...modalData, status: modalStatus })
+      if (waLink) window.open(waLink, '_blank')
       setModalData(null)
       await load()
     } catch {
@@ -200,7 +228,7 @@ export default function Admin() {
               filterStatus={filterStatus} setFilterStatus={setFilterStatus}
               filterDivisi={filterDivisi} setFilterDivisi={setFilterDivisi}
               onEdit={openModal}
-              divisiList={stats?.byDivisi || []}
+              divisiList={divisiOptions}
             />
           )}
 
@@ -229,6 +257,24 @@ export default function Admin() {
               <div className="flex justify-between"><span className="text-brown-400">NIM</span><span className="text-brown-200 font-mono">{modalData.nim}</span></div>
               <div className="flex justify-between"><span className="text-brown-400">Divisi</span><span className="text-white">{modalData.emoji} {modalData.nama_divisi}</span></div>
               <div className="flex justify-between"><span className="text-brown-400">Jadwal</span><span className="text-brown-200">{modalData.nama_jadwal}</span></div>
+              <div className="flex justify-between items-center">
+                <span className="text-brown-400">Video</span>
+                {modalData.video_url ? (
+                  <a href={modalData.video_url} target="_blank" rel="noopener noreferrer"
+                     className="text-brown-200 hover:text-white underline underline-offset-2 flex items-center gap-1">
+                    <Eye size={13}/> Tonton
+                  </a>
+                ) : (
+                  <span className="text-brown-600 text-xs">Tidak ada</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 mb-5 bg-green-900/20 border border-green-800/30 rounded-xl px-3 py-2.5">
+              <MessageCircle size={15} className="text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-green-300/90 text-xs leading-relaxed">
+                WhatsApp akan terbuka otomatis dengan pesan sesuai status yang kamu pilih, begitu kamu tekan <span className="font-semibold">Simpan</span>.
+              </p>
             </div>
 
             <div className="mb-4">
@@ -266,7 +312,7 @@ export default function Admin() {
             <div className="flex gap-3">
               <button onClick={() => setModalData(null)} className="btn-secondary flex-1 py-2.5 text-sm">Batal</button>
               <button onClick={saveStatus} disabled={saving} className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2">
-                {saving ? <><Loader2 size={15} className="animate-spin"/>Menyimpan...</> : <><CheckCircle size={15}/>Simpan</>}
+                {saving ? <><Loader2 size={15} className="animate-spin"/>Menyimpan...</> : <><CheckCircle size={15}/>Simpan & Kirim WA</>}
               </button>
             </div>
           </div>
@@ -383,7 +429,7 @@ function PendaftarTab({ data, search, setSearch, filterStatus, setFilterStatus, 
         </select>
         <select className="input-field w-auto py-2.5 text-sm bg-brown-800 text-brown-200" value={filterDivisi} onChange={e=>setFilterDivisi(e.target.value)}>
           <option value="">Semua Divisi</option>
-          {divisiList.map(d => <option key={d.nama_divisi} value={d.nama_divisi}>{d.emoji} {d.nama_divisi}</option>)}
+          {divisiList.map(d => <option key={d.id} value={d.id}>{d.emoji} {d.nama_divisi}</option>)}
         </select>
       </div>
 
@@ -410,7 +456,19 @@ function PendaftarTab({ data, search, setSearch, filterStatus, setFilterStatus, 
                       <p className="text-white font-semibold text-sm">{p.nama_lengkap}</p>
                       <p className="text-brown-500 text-xs font-mono">{p.nim}</p>
                     </td>
-                    <td className="px-4 py-3 text-brown-300 text-xs font-mono whitespace-nowrap">+62{p.no_hp?.replace(/^0/,'')}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <a
+                        href={buildWaLink(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1.5 text-brown-300 hover:text-green-400 text-xs font-mono transition-colors group"
+                        title="Chat via WhatsApp"
+                      >
+                        <MessageCircle size={13} className="text-green-500/70 group-hover:text-green-400" />
+                        +62{p.no_hp?.replace(/^0/,'')}
+                      </a>
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5 bg-brown-800 border border-brown-700/40 px-2.5 py-1 rounded-lg text-xs text-brown-200 whitespace-nowrap">
                         {p.emoji} {p.nama_divisi}

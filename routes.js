@@ -144,10 +144,17 @@ router.get('/divisi', async (_req, res) => {
 
 // POST /api/pendaftaran  — submit pendaftaran
 router.post('/pendaftaran', authMiddleware, async (req, res) => {
-  const { jadwal_id, divisi_id, no_hp } = req.body;
+  const { jadwal_id, divisi_id, no_hp, video_url } = req.body;
 
   if (!jadwal_id || !divisi_id || !no_hp)
     return res.status(400).json({ message: 'Jadwal, divisi, dan nomor HP wajib diisi' });
+
+  // video_url opsional, tapi kalau diisi harus link YouTube/Google Drive yang valid
+  if (video_url) {
+    const validVideoHost = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|drive\.google\.com)\//i;
+    if (!validVideoHost.test(video_url))
+      return res.status(400).json({ message: 'Link video harus dari YouTube atau Google Drive' });
+  }
 
   try {
     const sudahDaftar = await db.cekSudahDaftar(req.user.id);
@@ -155,7 +162,7 @@ router.post('/pendaftaran', authMiddleware, async (req, res) => {
       return res.status(409).json({ message: 'Kamu sudah pernah mendaftar' });
 
     const pendaftaranId = await db.submitPendaftaran(
-      req.user.id, jadwal_id, divisi_id, no_hp
+      req.user.id, jadwal_id, divisi_id, no_hp, video_url || null
     );
 
     res.status(201).json({
